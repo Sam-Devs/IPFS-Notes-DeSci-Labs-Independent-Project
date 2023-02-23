@@ -1,18 +1,33 @@
 import Head from "next/head";
-import Image from "next/image";
 import { Inter } from "@next/font/google";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useCallback, useState } from "react";
 import axios from "axios";
 import { BasicIpfsData } from "./api/ipfs";
-const inter = Inter({ subsets: ["latin"] });
+import Search from "../components/Search";
+import type { Container, Engine } from "tsparticles-engine";
+import Particles from "react-tsparticles";
+import { loadFull } from "tsparticles";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<BasicIpfsData[] | null>(null);
 
-  const [note, setNote] = useState<BasicIpfsData | any>(null);
+  const [searchValue, setSearchValue] = useState<string>("");
+  const [note, setNote] = useState<BasicIpfsData | any>("");
   const [file, setFile] = useState<any>("");
+
+  const particlesInit = useCallback(async (engine: Engine) => {
+    // console.log(engine);
+    await loadFull(engine);
+  }, []);
+
+  const particlesLoaded = useCallback(
+    async (container: Container | undefined) => {
+      await console.log(container);
+    },
+    []
+  );
 
   const handleLoad = async () => {
     setLoading(true);
@@ -41,11 +56,19 @@ export default function Home() {
     if (note !== "") {
       const { data } = await axios.post("/api/ipfs", { txt: note });
       localStorage.setItem("cid", data.path);
+      setNote("");
     } else {
       const { data } = await axios.post("/api/ipfs", { txt: file });
       localStorage.setItem("cid", data.path);
     }
     setIsLoading(false);
+  };
+
+  const handleSearch = async () => {
+    const { data } = await axios.post("/api/search", { txt: searchValue });
+    console.log(data);
+    setResult(data);
+    setSearchValue("");
   };
 
   // avoiding ternary operators for classes
@@ -62,32 +85,140 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main>
-        {/* <div className="flex flex-col gap-3">
-          <div className="text-3xl font-bold underline">IPFS Notes</div>
-          {!!result ? (
-            <div className="flex flex-col">
-              <span>Content: {result.content}</span>
-              <span>CID: {result.cid}</span>
-            </div>
-          ) : null}
-          <div>
-            <button
-              onClick={handleLoad}
-              className={classNames(
-                "bg-slate-300 hover:bg-slate-500 text-black rounded-md p-2 drop-shadow-md w-32",
-                loading ? "animate-pulse" : ""
-              )}
-            >
-              {loading ? "Loading..." : "Retrieve Data"}
-            </button>
-          </div>
-        </div> */}
-
-        <section className="w-full px-8 py-16 bg-gray-100 xl:px-8">
+        <Particles
+          id="tsparticles"
+          init={particlesInit}
+          loaded={particlesLoaded}
+          options={{
+            background: {
+              color: {
+                value: "#9da3f5",
+              },
+            },
+            interactivity: {
+              detect_on: "canvas",
+              events: {
+                onhover: {
+                  enable: false,
+                  mode: "grab",
+                },
+                onclick: {
+                  enable: false,
+                  mode: "push",
+                },
+                resize: true,
+              },
+              modes: {
+                grab: {
+                  distance: 400,
+                  line_linked: {
+                    opacity: 1,
+                  },
+                },
+                bubble: {
+                  distance: 400,
+                  size: 40,
+                  duration: 2,
+                  opacity: 8,
+                  speed: 3,
+                },
+                repulse: {
+                  distance: 200,
+                  duration: 0.4,
+                },
+                push: {
+                  particles_nb: 4,
+                },
+                remove: {
+                  particles_nb: 2,
+                },
+              },
+            },
+            particles: {
+              number: {
+                value: 6,
+                density: {
+                  enable: true,
+                  value_area: 800,
+                },
+              },
+              color: {
+                value: "#13183d",
+              },
+              shape: {
+                type: "polygon",
+                stroke: {
+                  width: 0,
+                  color: "#000",
+                },
+                polygon: {
+                  nb_sides: 6,
+                },
+                image: {
+                  src: "img/github.svg",
+                  width: 100,
+                  height: 100,
+                },
+              },
+              opacity: {
+                value: 0.3,
+                random: true,
+                anim: {
+                  enable: false,
+                  speed: 1,
+                  opacity_min: 0.1,
+                  sync: false,
+                },
+              },
+              size: {
+                value: 160,
+                random: false,
+                anim: {
+                  enable: true,
+                  speed: 10,
+                  size_min: 40,
+                  sync: false,
+                },
+              },
+              line_linked: {
+                enable: false,
+                distance: 200,
+                color: "#ffffff",
+                opacity: 1,
+                width: 2,
+              },
+              move: {
+                enable: true,
+                speed: 8,
+                direction: "none",
+                random: false,
+                straight: false,
+                out_mode: "out",
+                bounce: true,
+                attract: {
+                  enable: false,
+                  rotateX: 600,
+                  rotateY: 1200,
+                },
+              },
+            },
+            // detectRetina: true,
+          }}
+        />
+        <Search
+          searchValue={searchValue}
+          setSearchValue={setSearchValue}
+          handleSearch={handleSearch}
+        />
+        <section
+          className="w-full px-8 py-16 bg-gray-100 xl:px-8"
+          style={{ zIndex: 20 }}
+        >
           <div className="max-w-5xl mx-auto">
             <div className="flex flex-col items-center md:flex-row">
-              <div className="w-full space-y-5 md:w-3/5 md:pr-6">
-                <div className="text-3xl font-bold underline">IPFS Notes</div>
+              <div className="w-full space-y-5 md:w-3/5 md:pr-6 z-10">
+                <h1 className="text-3xl font-bold underline">IPFS Notes</h1>
+                {}
                 {!!result
                   ? result.map((data, index) => (
                       <div className="flex flex-col" key={index}>
@@ -115,9 +246,9 @@ export default function Home() {
                   data-rounded="rounded-lg"
                   data-rounded-max="rounded-full"
                 >
-                  <h3 className="mb-6 text-2xl font-medium text-center">
+                  <p className="mb-6 text-2xl font-medium text-center">
                     Add Note
-                  </h3>
+                  </p>
                   <textarea
                     className="peer my-10 block min-h-[auto] w-full rounded border-2 bg-transparent py-[0.32rem] px-3 leading-[1.6] transition-all duration-200 ease-linear focus:placeholder:opacity-100 data-[te-input-state-active]:placeholder:opacity-100 motion-reduce:transition-none dark:text-neutral-800 dark:placeholder:text-neutral-200 [&:not([data-te-input-placeholder-active])]:placeholder:opacity-0"
                     id="exampleFormControlTextarea1"
